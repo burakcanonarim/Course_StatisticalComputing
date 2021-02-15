@@ -1,0 +1,489 @@
+---
+title: "Midterm of Statistical Computing"
+author: "Burak Can Onarım"
+date: "01 05 2020"
+output: html_document
+---
+
+# QUESTION-1
+
+## Read the csv file of Students Dataset from URL
+
+Students dataset uploaded to one website and I declared a variable what is called 'students' using read.csv() function.
+```{r}
+students <- read.csv("https://userpage.fu-berlin.de/soga/200/2010_data_sets/students.csv")
+```
+
+
+## Data Organization
+
+First of all, I used a function to see column names.
+```{r}
+attach(students)
+colnames(students)
+```
+
+### Re-organization of column names
+Afterward, some column names are changed.
+```{r}
+names(students)[names(students) == "stud.id"] <- "id"
+names(students)[names(students) == "nc.score"] <- "gpa"
+names(students)[names(students) == "major"] <- "department.major"
+names(students)[names(students) == "minor"] <- "department.minor"
+names(students)[names(students) == "score1"] <- "midterm"
+names(students)[names(students) == "score2"] <- "final"
+```
+
+
+### Re-organization of Factor values
+Some factors are changed using the 'plyr' package.
+```{r}
+library(plyr)
+students <- transform(students,
+                      online.tutorial = as.factor(mapvalues(online.tutorial,c(0,1), c("no", "yes"))),
+                      graduated = as.factor(mapvalues(graduated, c(0,1),
+                                                      c("no", "yes"))))
+```
+
+
+### Renaming the column values using 'dplyr'
+Also, I used 'dplyr' package to change names of columns.
+```{r students}
+library(dplyr)
+students <- students %>% mutate(
+  semester = recode(semester, ">6th" = ">6", "1st" = "1", "2nd" = "2",
+                    "3rd" = "3", "4th" = "4", "5th" = "5", "6th" = "6"))
+```
+
+
+##### Detach and Attach to use new column names
+Detach and attach functions are run to use new column names.
+```{r}
+detach(students)
+attach(students)
+```
+
+
+
+## Some calculations
+
+I calculate the BMI value and weighted mean of each students.
+```{r}
+bmi.value <- (weight / (height)^2)*100
+total.point <- midterm*0.4 + final*.6
+```
+
+
+## Data Visualization
+
+```{r}
+library(ggplot2)
+```
+
+### BMI Value ~ Salary
+```{r}
+ggplot(students, aes(salary, bmi.value)) +
+  geom_point() + geom_smooth(method="lm", se=F) +
+    labs(title="Scatterplot of BMI values and Salary",
+       subtitle="What can we say about correlation between BMI and salary?",
+       x="Salary",
+       y="BMI Value",
+       caption="Source: students dataset")
+```
+
+According to normal line of this scatterplot, average of salary increases as bmi value decrases.
+
+Certainly, there are some exclusions but I think people who have earn more money can stay healthy and they have optimal bmi value.
+
+
+### Grades ~ Salary
+```{r}
+ggplot(students, aes(salary, total.point)) +
+  geom_point() + geom_smooth(method="lm", se=F) +
+  labs(title="Scatterplot of Grades and Salary",
+       subtitle="What can we say about correlation between Grades and salary?",
+       x="Salary",
+       y="Grades",
+       caption="Source: students dataset")
+```
+
+Obviously, Students earn much more money if they get their grades up.
+
+
+### GPA ~ Salary by Gender
+```{r}
+ggplot(students, aes(salary, gpa)) +
+  labs(title="Plot of GPA and Salary by Interpret with Genders",
+       subtitle="What can we say about this plot?",
+       x = "Salary",
+       y = "GPA",
+       caption="Source: students dataset") +
+  geom_smooth(aes(col = gender), method="lm", se=F)
+```
+
+According to this plot, you cannot earn a lot of money if you are a woman. That is to say, men may be high-paid employees but women do not.
+
+My other opinion is about grades. The salary will be more when your gpa increase
+if you are a man. However, if you are a woman, your salary will be less when your gpa even increase.
+
+My final inference is about gpa of genders. Men's gpa is higher than women's.
+
+
+### Salary ~ Departments
+```{r}
+library(ggthemes)
+options(scipen = 999)
+ggplot(students, aes(x = salary, y = department.major)) +
+  geom_bar(stat = "identity", width = .6, color = "#85BB65") +
+  coord_flip() +
+  labs(title="Total Income of Students group by Same Departments",
+       x = "Total Income",
+       y = "Departments",
+       caption = "Source: students dataset") +
+  theme_tufte() +
+  theme(plot.title = element_text(hjust = .5), 
+        axis.ticks = element_blank(),
+        axis.text.x = element_text(angle=40, hjust=.8))
+```
+
+Department of Biology has the highest income and there may be many reasons for this situation. One of them is population of biology department. The population can be more than others. Also, students of biology department are more successful in their career and it is can be another reason.
+
+Department of Social Sciences has the lowest income and there may be many reasons as before. One of these reasons is population of social sciences department, again. The population can be less than others. Also, students of biology department are not successful or there is an underemployment.
+
+--------------------------------------------------------------------------------
+
+# QUESTION-2
+
+### Subsetting dataframe based on gender
+
+```{r}
+females <- subset(students, gender=='Female')
+males <- subset(students, gender=='Male')
+
+## To remove NAs
+females <- na.omit(females)
+males <- na.omit(males)
+
+```
+
+
+## Function to find confidence 
+```{r}
+norm.interval = function(data, variance, conf.level = 0.95) {
+z = qnorm((1 - conf.level)/2, lower.tail = FALSE)
+xbar = mean(data)
+sdx = sqrt(variance/length(data))
+c(xbar - z * sdx, xbar + z * sdx)
+}
+
+```
+
+
+## For GPA (as known 'nc.score')
+
+#### Females
+```{r}
+norm.interval(females$gpa, var(females$gpa))
+```
+
+#### Males
+```{r}
+norm.interval(males$gpa, var(males$gpa))
+```
+
+
+## For Midterm (as known 'score1')
+
+#### Females
+```{r}
+norm.interval(females$midterm, var(females$midterm))
+```
+
+#### Males
+```{r}
+norm.interval(males$midterm, var(males$midterm))
+```
+
+## For Final (as known 'score2')
+
+#### Females
+```{r}
+norm.interval(females$final, var(females$final))
+```
+
+#### Males
+```{r}
+norm.interval(males$final, var(males$final))
+```
+
+--------------------------------------------------------------------------------
+
+# QUESTION-3
+
+## Based on Gender
+
+#### Females
+```{r}
+norm.interval(females$salary, var(females$salary))
+```
+
+#### Males
+```{r}
+norm.interval(males$salary, var(males$salary))
+```
+
+
+## Based on Religion
+
+I have to subset the 'students' dataframe based on religion.
+
+```{r}
+muslim <- subset(students, religion=='Muslim')
+other <- subset(students, religion=='Other')
+protestant <- subset(students, religion=='Protestant')
+catholic <- subset(students, religion=='Catholic')
+orthodox <- subset(students, religion=='Orthodox')
+
+## To remove NAs
+muslim <- na.omit(muslim)
+other <- na.omit(other)
+protestant <- na.omit(protestant)
+catholic <- na.omit(catholic)
+orthodox <- na.omit(orthodox)
+```
+
+#### Muslim
+```{r}
+norm.interval(muslim$salary, var(muslim$salary))
+```
+
+#### Other
+```{r}
+norm.interval(other$salary, var(other$salary))
+```
+
+#### Protestant
+```{r}
+norm.interval(protestant$salary, var(protestant$salary))
+```
+
+#### Catholic
+```{r}
+norm.interval(catholic$salary, var(catholic$salary))
+```
+
+#### Orthodox
+```{r}
+norm.interval(orthodox$salary, var(orthodox$salary))
+```
+
+
+## Based on Department.major(as known major)
+
+I have to subset the 'students' dataframe based on department.major.
+
+```{r}
+political.science <- subset(students, department.major=='Political Science')
+social.science <- subset(students, department.major=='Social Sciences')
+environmental.sciences <- subset(students, department.major=='Environmental Sciences')
+economics.finance <- subset(students, department.major=='Economics and Finance')
+mathematics.statistics <- subset(students, department.major=='Mathematics and Statistics')
+biology <- subset(students, department.major=='Biology')
+
+## To remove NAs
+political.science <- na.omit(political.science)
+social.science <- na.omit(social.science)
+environmental.sciences <- na.omit(environmental.sciences)
+economics.finance <- na.omit(economics.finance)
+mathematics.statistics <- na.omit(mathematics.statistics)
+biology <- na.omit(biology)
+```
+
+#### Political Science
+```{r}
+norm.interval(political.science$salary, var(political.science$salary))
+```
+
+#### Social Science
+```{r}
+norm.interval(social.science$salary, var(social.science$salary))
+```
+
+#### Environmental Sciences
+```{r}
+norm.interval(environmental.sciences$salary, var(environmental.sciences$salary))
+```
+
+#### Economics and Finance
+```{r}
+norm.interval(economics.finance$salary, var(economics.finance$salary))
+```
+
+#### Mathematics and Statistics
+```{r}
+norm.interval(mathematics.statistics$salary, var(mathematics.statistics$salary))
+```
+
+#### Biology
+```{r}
+norm.interval(biology$salary, var(biology$salary))
+```
+
+--------------------------------------------------------------------------------
+
+# QUESTION-4
+
+## Salary for Women
+
+#### H0: mu <= 40000
+#### Ha: mu > 40000
+
+```{r}
+t.test(females$salary, mu=40000, alternative = c("greater"), conf.level=0.95)
+```
+
+
+## Midterm(as known score1) for Women
+#### H0: mu >= 70
+#### Ha: mu < 70
+
+```{r}
+t.test(females$midterm, mu=70, alternative = c("less"), conf.level=0.95)
+```
+
+--------------------------------------------------------------------------------
+
+# QUESTION-5
+
+First of all, the size of data 'females' is not equal to size of data 'male'.
+So, I use first of 500 people in these datas for two sample hypothesis.
+
+```{r}
+first.500.salary.females <- females$salary[1:500]
+first.500.salary.males <- males$salary[1:500]
+
+first.500.midterm.females <- females$midterm[1:500]
+first.500.midterm.males <- males$midterm[1:500]
+```
+
+## Mean of Salary based on Gender
+
+```{r}
+difference.salary <- first.500.salary.females - first.500.salary.males
+mean(difference.salary)
+```
+
+#### H0: mu.diff = 0
+#### Ha: mu.diff =! 0
+
+```{r}
+shapiro.test(difference.salary)
+
+```
+p-value is greater than 0.05 and so it is normal.
+
+```{r}
+t.test(difference.salary, mu=0, alternative = "two.sided", conf.level = 0.95)
+```
+
+## Mean of Midterm(as known score1) based on Gender
+
+```{r}
+difference.midterm <- first.500.midterm.females - first.500.midterm.males
+mean(difference.midterm)
+```
+
+#### H0: mu.diff = 0
+#### Ha: mu.diff =! 0
+
+```{r}
+shapiro.test(difference.midterm)
+
+```
+p-value is not greater than 0.05 and so it is not normal.
+
+```{r}
+t.test(difference.midterm, mu=0, alternative = "two.sided", conf.level = 0.95)
+```
+
+--------------------------------------------------------------------------------
+
+# QUESTION-6
+
+First of all, the size of data 'political.science' is not equal to size of data 'economics.finance'.
+So, I use first of 250 people in these datas for two sample hypothesis.
+
+```{r}
+first.250.salary.politics <- political.science$salary[1:250]
+first.250.salary.economics <- economics.finance$salary[1:250]
+```
+
+## Mean of Salary(as known score1) based on "Political Science" and "Economics and Finance".
+
+```{r}
+difference.department.salary <- first.250.salary.politics - first.250.salary.economics
+
+mean(difference.department.salary)
+```
+
+#### H0: mu.diff = 0
+#### Ha: mu.diff =! 0
+
+```{r}
+shapiro.test(difference.department.salary)
+```
+p-value is greater than 0.05 and so it is normal.
+
+```{r}
+t.test(difference.department.salary, mu=0, alternative = "two.sided", conf.level = 0.95)
+```
+
+-------------------------------------------------------------------------------- 
+# QUESTION-7
+
+
+#### MADCalculator function
+
+```{r}
+MADcalculator <- function(my.vector) {
+  mad.value = median(abs(my.vector - median(my.vector)))
+  return(mad.value)
+}
+my.list1 = c(4,2,5,3,0,4)
+MADcalculator(my.list1)
+```
+
+
+#### Function for Anaysis of Correlation
+
+```{r}
+CorrelationAnalyzer <- function(vector1, vector2) {
+  plot(vector1, vector2, main = "Scatterplot of These Vectors",
+       xlab = "First vector", ylab = "Second Vector")
+  
+  pcc = (sum((vector1 - mean(vector1))*(vector2 - mean(vector2)))) / (sqrt((sum((vector1 - mean(vector1))^2))*(sum((vector2 - mean(vector2))^2))))
+  print(pcc)
+    if (pcc < 0.5){
+    print("Correlation is WEAK")
+  } else if (pcc >= 0.5 && pcc < 0.8) {
+    print("Correlation is GOOD ENOUGH")
+  } else {
+    print("Correlation is STRONG")
+  }
+}
+my.list2 = c(17,13,12,15,16,14,16,16,18,19)
+my.list3 = c(94,73,59,80,93,85,66,79,77,91)
+CorrelationAnalyzer(my.list2, my.list3)
+```
+
+
+#### Function for Replacing the Missing Values(NAs)
+
+```{r}
+MissingValueReplacer <- function(my.vector) {
+  my.vector[is.na(my.vector)] <- mean(my.vector, na.rm = T)
+  round(my.vector, digits = 1)
+}
+my.list4 <- c(2,5,9,8,NA,7,10,4,NA)
+MissingValueReplacer(my.list4)
+```

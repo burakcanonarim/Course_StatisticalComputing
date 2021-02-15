@@ -1,0 +1,786 @@
+---
+title: "COVID-19 AWARENESS"
+author: "Burak Can Onarım"
+date: "30 05 2020"
+output: html_document
+---
+
+# Introduction
+**COVID-19**(Coronavirus disease 2019) is an infectious disease caused by **SARS-CoV-2**(severe acute respiratory syndrome coronavirus 2). It was first identified in ***December 2019*** in Wuhan, China, and has since spread globally and also the pandemic era is still ongoing for a long time. So, are people aware of Covid-19 disease? I have created a basic quiz to reach an answer of this question.
+
+***__Note:__*** Language of the quiz is Turkish because all participants are Turks and most of them do not know English.
+
+## Quiz
+You can click [here](https://forms.gle/6ikkicK3eNwksTQt5) to reach my quiz. Besides the form link, you can also see a brief summary of quiz in below:
+
+### Demographic Questions
+I have asked some questions about demographic information and this list what is included questions:
+
+* *Age*
+* *Gender*
+* *Marital Status*
+* *Education*
+* *Monthly Household Income*
+
+### Quiz Questions
+The value of correct answers is 10 points. For example, a participant can get 70 points if he/she answers correctly for 7 questions out of 10 questions. Also, you can easily see topics of questions:
+
+1. Lifetime of coronavirus
+2. Social distance
+3. Vaccine for Covid-19
+4. Most risky group
+5. Pets can spread coronavirus?
+6. Correctness about coronavirus spreading or not spreading in warm climates
+7. City where the disease first appeared
+8. Symptoms of Covid-19
+9. Correctness about effect of using vinegar for coronavirus
+10. Example of social distancing
+
+### How I collected data?
+First of all, I have created a form using Google Forms. Then, I made a request to my circle of friends and also theirs for answering quiz questions. There were already more over 100 participants in a few hours.
+
+---
+
+# Data Preprocessing
+First of processes is downloading dataset as Excel format. The next step is importing dataset from Excel. Also, we can see the column names.
+```{r}
+library(readxl)
+dataset <- read_excel("C:/Users/burak/Desktop/dataset.xlsx")
+colnames(dataset)
+```
+
+And then, column names should to change with English terms and the questions are not necessary for me. So, I will rename them with question numbers.
+```{r}
+attach(dataset)
+names(dataset)[names(dataset) == "Zaman damgası"] <- "timestamp"
+names(dataset)[names(dataset) == "Puan"] <- "total.score"
+names(dataset)[names(dataset) == "Yaşınız"] <- "age.range"
+names(dataset)[names(dataset) == "Cinsiyetiniz"] <- "gender"
+names(dataset)[names(dataset) == "Medeni Durumunuz"] <- "marital.status"
+names(dataset)[names(dataset) == "Eğitim Durumunuz"] <- "education"
+names(dataset)[names(dataset) == "Aylık Hane Geliri"] <- "house.income"
+names(dataset)[names(dataset) == "Yeni koronavirüs vücut dışında ne kadar süre hayatta kalır?"] <- "question.1"
+names(dataset)[names(dataset) == "Sosyal mesafe en az ne kadar olmalıdır?"] <- "question.2"
+names(dataset)[names(dataset) == "Covid-19 için bir aşı en erken ne zaman piyasaya sunulabilir?"] <- "question.3"
+names(dataset)[names(dataset) == "Aşağıdakilerden hangisi Covid-19 hastalığına yakalanırsa kurtulma ihtimali en düşüktür?"] <- "question.4"
+names(dataset)[names(dataset) == "Evcil hayvanım bana Covid-19 bulaştırabilir mi?"] <- "question.5"
+names(dataset)[names(dataset) == "ABD Başkanı Donald Trump, koronavirüsün yayılmasının daha sıcak havalarda yavaşlayabileceğini söyledi. Covid-19 virüsünün sıcak ve nemli iklimlerde yayılma hızı gerçekten azalır mı?"] <- "question.6"
+names(dataset)[names(dataset) == "Covid-19 hastalığının kaynağı olan dünya şehri hangisidir?"] <- "question.7"
+names(dataset)[names(dataset) == "Aşağıdakilerden hangisi Covid-19 hastalığının belirtilerinden biri değildir?"] <- "question.8"
+names(dataset)[names(dataset) == "Covid-19 hastalığına neden olan koronavirüsün yayılmasına karşı yapılan temizliklerde sirke kullanımı etkili midir?"] <- "question.9"
+names(dataset)[names(dataset) == "Aşağıdakilerden hangisi sosyal mesafe kuralına bir örnektir?"] <- "question.10"
+```
+
+I think I did everything which can be done for column names. Now, let see new column names.
+```{r}
+colnames(dataset)
+```
+
+Now, let us see data types of all columns.
+```{r}
+sapply(dataset, typeof)
+```
+
+Data type of all columns is ***character*** except __timestamp__ and __total.score__ columns. So these has to convert to factor type for effective data visualization.
+```{r}
+dataset$age.range <- as.factor(dataset$age.range)
+
+dataset$gender <- as.factor(dataset$gender)
+
+dataset$marital.status <- as.factor(dataset$marital.status)
+
+dataset$education <- as.factor(dataset$education)
+
+dataset$house.income <- as.factor(dataset$house.income)
+
+dataset$question.1 <- as.factor(dataset$question.1)
+
+dataset$question.2 <- as.factor(dataset$question.2)
+
+dataset$question.3 <- as.factor(dataset$question.3)
+
+dataset$question.4 <- as.factor(dataset$question.4)
+
+dataset$question.5 <- as.factor(dataset$question.5)
+
+dataset$question.6 <- as.factor(dataset$question.6)
+
+dataset$question.7 <- as.factor(dataset$question.7)
+
+dataset$question.8 <- as.factor(dataset$question.8)
+
+dataset$question.9 <- as.factor(dataset$question.9)
+
+dataset$question.10 <- as.factor(dataset$question.10)
+```
+
+---
+
+After the processes for columns, I want to replace Turkish terms with English ones for demographic informations. Als, I have to arrange factor levels judiciously.
+```{r message=FALSE}
+library(dplyr)
+dataset <- dataset %>% mutate(age.range = recode(age.range, "65 üstü" = "65+"))
+dataset$age.range <- factor(dataset$age.range, levels = c("0 - 18", "18 - 25", "25 - 40", "40 - 65", "65+"))
+
+dataset <- dataset %>% mutate(gender = recode(gender, "Erkek" = "Male", "Kadın" = "Female", "Belirtmek İstemiyorum" = "I do not want to state"))
+dataset$gender <- factor(dataset$gender, levels = c("Male", "Female", "I do not want to state"))
+
+dataset <- dataset %>% mutate(marital.status = recode(marital.status, "Bekar" = "Single", "Evli" = "Married", "Boşanmış/Dul" = "Divorced/Widowed"))
+dataset$marital.status <- factor(dataset$marital.status, levels = c("Single", "Married", "Divorced/Widowed"))
+
+dataset <- dataset %>% mutate(education = recode(education, "İlkokul" = "Elementary School", "Ortaokul" = "Secondary School", "Lise" = "High School", "Önlisans/Lisans" = "Associate/Bachelor's Degree", "Yüksek Lisans veya Üstü" = "Master Degree or above"))
+dataset$education <- factor(dataset$education, levels = c("Elementary School", "Secondary School", "High School", "Associate/Bachelor's Degree", "Master Degree or above"))
+
+dataset <- dataset %>% mutate(house.income = recode(house.income, "10.000 TL veya üstü" = "10.000 TL or above"))
+dataset$house.income <- factor(dataset$house.income, levels = c("0 - 3.000 TL", "3.000 - 6.000 TL", "6.000 - 10.000 TL", "10.000 TL or above"))
+```
+
+Actually I do not need answers. Therefore, I will use **correctness** and **wrongness** of questions instead of answers of them. So now, the process of changing answers is turn to come.
+```{r}
+dataset <- dataset %>% mutate(question.1 = recode(question.1, "En fazla birkaç gün" = "true", "Bir haftadan fazla" = "false", "Yaklaşık olarak bir ay" = "false", "Bir sene" = "false"))
+
+dataset <- dataset %>% mutate(question.2 = recode(question.2, "Yarım metre" = "false", "Bir metre" = "true", "Beş metre" = "false", "On metre" = "false"))
+
+dataset <- dataset %>% mutate(question.3 = recode(question.3, "İki ay sonra" = "false", "Dört ay sonra" = "false", "Altı ay sonra" = "false", "Bir sene sonra" = "true"))
+
+dataset <- dataset %>% mutate(question.4 = recode(question.4, "Çocuklar" = "false", "Hamileler" = "false", "65 yaş ve üstü kişiler" = "true", "Gençler" = "false"))
+
+dataset <- dataset %>% mutate(question.5 = recode(question.5, "Evet" = "false", "Hayır" = "true"))
+
+dataset <- dataset %>% mutate(question.6 = recode(question.6, "Evet" = "false", "Hayır" = "true"))
+
+dataset <- dataset %>% mutate(question.7 = recode(question.7, "Wuhan" = "true", "Hong Kong" = "false", "Milano" = "false", "New York" = "false"))
+
+dataset <- dataset %>% mutate(question.8 = recode(question.8, "Solunum sıkıntısı" = "true", "Ateş" = "false", "Hapşırık" = "true", "Kuru öksürük" = "false"))
+
+dataset <- dataset %>% mutate(question.9 = recode(question.9, "Evet" = "false", "Hayır" = "true"))
+
+dataset <- dataset %>% mutate(question.10 = recode(question.10, "Kalabalık yerlere gitmeyi bırakmak" = "true", "Aynı evde yaşadığın kişilerle konuşmayı bırakmak" = "false", "Telefonla konuşmayı bırakmak" = "false", "Televizyon izlemeyi bırakmak" = "false"))
+```
+
+---
+
+Finally, let see the new dataframe for first six rows:
+
+```{r}
+library(knitr)
+kable(head(dataset), format = "markdown", align = "c")
+```
+
+---
+
+## Data Visualization
+```{r, echo=FALSE}
+detach(dataset)
+attach(dataset)
+```
+
+I want to see some identifier information about score of participants. So, I am goint to use **_boxplot_** and **_histogram_**.
+
+```{r}
+boxplot(total.score)
+```
+
+According to this boxplot, most of participants get high scores. First qurtile is ***70*** and third quartile is ***90***. Also, the average of scores is seem to be ***80***. Let me check the correct average:
+```{r}
+mean(total.score)
+```
+
+As you can see that is in the preceding output there is an average value for total.score and it is an integer which is valued of 80.
+
+### Some Interpretation about *total.score*
+* The minimum score is *40* and maximum is *100*. So, the range is actually wide. 
+  + This result shows that there are participants who are various.
+  + It shows that also there are not participants who are very unconscious.
+
+* In the boxplot, the distance between maximum point and box is shorter than distance between minimum point and box.
+  + This result shows that many participants get a high scores.
+
+* My final comment is about number of participants. I've seen that most of participants get high scores when I look the boxplot.
+
+Let us see more clearly using histogram for *total.score*.
+
+### *Data Visualization(cont.)*
+
+Now, I will utilize function of hist().
+```{r}
+hist(total.score, main = "Scores of Participants",
+     xlab = "Score", ylab = "Participants", col = "steelblue",
+     border = "steelblue", breaks = 100)
+```
+
+As it was expected, there are no more participants who get low grades.
+
+Also,
+
+* The number of participants who gets average points are more over comparing to others.
+
+* The number of participants who gets 70 or more points(i.e. high points) is much.
+
+### *Based on Demographics*
+
+Now, I want to see that demographic informations for participants:
+```{r}
+library(ggplot2)
+library(ggthemes)
+ggplot(dataset) + geom_count(aes(x = house.income, y = age.range), color = "steelblue") +
+  facet_grid(marital.status ~ gender) +
+  labs(tag = "First Plot",
+       title = "Demographic Informations",
+       subtitle =  "but not included info of education",
+       x = "Household Income", y = "Age",
+       caption = "Created by Burak Can Onarım in 31.05.2020") +
+  theme(axis.ticks = element_blank(),
+        axis.text.x = element_text(angle=90, hjust=1))
+```
+
+There are many inference:
+
+* Most of participants have stated their gender information.
+  + All participants who have **not** stated their gender are *married*, age is *between 25 and 40*, also house income is *more than 10.000 TL or equal*.
+  + Number of female participants is seem to be greater than males.
+  + The house income of all male participants is less than 6.000 TL or equal. On the other hand, house income of females is various.
+  
+* Most of participants are **single**.
+  + There are no married males who have house income more than *6.000 TL*.
+  + As it was expected, age of married participants is minimum *18*; but not more than 65.
+  
+* Most of participants are **40 years old or less than 40**.
+  + All of 65 or more years old participants are *female*, *single* and their house income is *highest option*.
+  + Single and female participants who are between 25 and 65 years old did not participated.
+
+* The number of participants decreases as the house income increases.
+  + Most of participants have *6.000 TL or less than 6.000 TL* house income.
+  + All of male and married participants have not selected highest option for house income.
+  
+In addition, many inferences can be made using this plot.
+
+---
+
+### Score ~ Income
+
+Would the total.score be increased when household income increase? Let us see using the boxplot:
+```{r, warning=FALSE,message=FALSE}
+ggplot(dataset) + geom_boxplot(mapping = aes(x = house.income, y = total.score)) +
+  scale_y_continuous(breaks = seq(40, 100, 10)) +
+  labs(tag = "Second Plot",
+       title = "Scores based on Household Income",
+       subtitle =  "using boxplot",
+       x = "Household Income", y = "Score",
+       caption = "Created by Burak Can Onarım in 31.05.2020")
+```
+
+As I expected, awareness of participants increases when their incomes increases. The awareness about Covid-19 is same for the participants who earn *0 - 3.000 TL* and *3.000 - 6.000 TL* at monthly.
+
+---
+
+### Score ~ Age range and Gender
+
+I want to show that score distribution based on age range and gender together:
+```{r}
+ggplot(dataset) + geom_bar(mapping = aes(x = total.score), width = 5) +
+  facet_wrap(age.range ~ gender, nrow = 2) +
+  labs(tag = "Third Plot",
+       title = "Scores based on Age and Gender",
+       subtitle =  "using barplot",
+       x = "Score", y = "Count",
+       caption = "Created by Burak Can Onarım in 31.05.2020")
+```
+
+---
+
+### Scores ~ Education
+
+Now, I want to show that scores with educations. Does the score increase as education level ups?
+```{r}
+ggplot(dataset, aes(total.score, fill = education)) + geom_bar(width = 5) +
+  scale_y_continuous(breaks = seq(0, 60, 10)) +
+  labs(tag = "Fourth Plot",
+       title = "Scores based on Education",
+       subtitle =  "using barplot",
+       x = "Score", y = "Count",
+       caption = "Created by Burak Can Onarım in 31.05.2020")
+```
+
+* For master degree or above;
+  + Their minimum score is *60* and maximum is *70*. So, they have not much awareness score about covid-19.
+  + I think they should learn more stuffs for protection from coronavirus.
+  
+* For associate or bachelor's degree;
+  + They constitute the vast majority of the participants. So, their awareness is like all participants.
+  + For most of them, their scores are *80* or above.
+  
+* For high school;
+  + Some few have *100* point but the rest have chosen at least one wrong answer.
+  + They should learn more stuffs.
+  
+* For secondary school;
+  + There are not many people who get *90* or more points.
+  + They should learn more stuff, too.
+  
+* For elementary school;
+  + They do not get less than *60* points.
+  + They are equal-distributed for any score higher than *60*.
+  
+  
+**MY RESULT --> ** Education level is not effective for awareness about Covid-19 disease. So, schools are not teaching anything about it. For awareness, people have to learn by themselves.
+
+---
+
+### Scores ~ Marital Status
+
+Final plot is about effects of marital status on awareness score.
+
+```{r, warning=FALSE}
+ggplot(dataset, aes(total.score)) + geom_bar(width = 5) +
+  facet_wrap(~ marital.status) +
+  scale_y_continuous(breaks = seq(0, 60, 10)) +
+  labs(tag = "Fifth Plot",
+       title = "Scores based on Marital Status",
+       subtitle =  "using barplot",
+       x = "Score", y = "Count",
+       caption = "Created by Burak Can Onarım in 31.05.2020")
+```
+
+* For single participants;
+  + Many of them get *80* or more points. So, their awareness is not bad.
+  + Nevertheless, a couple of single participants could not get even *60* point. They have to improve themselves about Covid-19 disease.
+
+* For married participants;
+  + Like singles, many of them get *80* or more points. So, their awareness is good.
+  + They are successful, although there is not much participation.
+
+* For divorced or widowed participants;
+  + There are only a few divorced or widowed participants.
+  + All of them got *70* points.
+
+---
+
+## Confidence Intervals
+
+I will compare confidence intervals of mean total.score for high educated(i.e. education level is higher than high school) AND low educated(i.e. education level is lower than high school or equal)
+
+### Pre-processing
+
+I want to create two dataframes based on education levels. So,
+
+```{r}
+# All participants whose education level is higher than high school;
+high.educated <- dataset[!(dataset$education == "Elementary School"),]
+high.educated <- high.educated[!(high.educated$education == "Secondary School"),]
+high.educated <- high.educated[!(high.educated$education == "High School"),]
+
+# All participants whose education level is lower than *high school* or equal;
+low.educated <- dataset[!(dataset$education == "Associate/Bachelor's Degree"),]
+low.educated <- low.educated[!(low.educated$education == "Master Degree or above"),]
+```
+
+---
+
+### End Points of Confidence Intervals
+
+At first, I want to show confidence intervals of mean of total.score with *0.9*, *0.95* and *0.99* levels for **high educated** participants.
+
+* **Level of 0.9: **
+```{r}
+cat(paste0("Lower end point: ", t.test(high.educated$total.score,
+                                       conf.level = 0.9)$conf.int[1],
+           "\nUpper end point: ", t.test(high.educated$total.score,
+                                         conf.level = 0.9)$conf.int[2]))
+```
+
+* **Level of 0.95: **
+```{r}
+cat(paste0("Lower end point: ", t.test(high.educated$total.score,
+                                       conf.level = 0.95)$conf.int[1],
+           "\nUpper end point: ", t.test(high.educated$total.score,
+                                         conf.level = 0.95)$conf.int[2]))
+```
+
+* **Level of 0.99: **
+```{r}
+cat(paste0("Lower end point: ", t.test(high.educated$total.score,
+                                       conf.level = 0.99)$conf.int[1],
+           "\nUpper end point: ", t.test(high.educated$total.score,
+                                         conf.level = 0.99)$conf.int[2]))
+```
+
+---
+
+At now, I want to show confidence intervals of mean of total.score with *0.9*, *0.95* and *0.99* levels for **low educated** participants.
+
+* **Level of 0.9: **
+```{r}
+cat(paste0("Lower end point: ", t.test(low.educated$total.score,
+                                       conf.level = 0.9)$conf.int[1],
+           "\nUpper end point: ", t.test(low.educated$total.score,
+                                         conf.level = 0.9)$conf.int[2]))
+```
+
+* **Level of 0.95: **
+```{r}
+cat(paste0("Lower end point: ", t.test(low.educated$total.score,
+                                       conf.level = 0.95)$conf.int[1],
+           "\nUpper end point: ", t.test(low.educated$total.score,
+                                         conf.level = 0.95)$conf.int[2]))
+```
+
+* **Level of 0.99: **
+```{r}
+cat(paste0("Lower end point: ", t.test(low.educated$total.score,
+                                       conf.level = 0.99)$conf.int[1],
+           "\nUpper end point: ", t.test(low.educated$total.score,
+                                         conf.level = 0.99)$conf.int[2]))
+```
+
+---
+
+Finally, I want to show confidence intervals of mean **difference** of total.score with *0.9*, *0.95* and *0.99* levels for **high educated** and **low educated** participants.
+
+* **Level of 0.9: **
+```{r}
+cat(paste0("Lower end point: ", t.test(high.educated$total.score,
+                                       low.educated$total.score,
+                                       conf.level = .9)$conf.int[1],
+           "\nUpper end point: ", t.test(high.educated$total.score,
+                                         low.educated$total.score,
+                                         conf.level = .9)$conf.int[2]))
+```
+
+* **Level of 0.95: **
+```{r}
+cat(paste0("Lower end point: ", t.test(high.educated$total.score,
+                                       low.educated$total.score,
+                                       conf.level = .95)$conf.int[1],
+           "\nUpper end point: ", t.test(high.educated$total.score,
+                                         low.educated$total.score,
+                                         conf.level = .95)$conf.int[2]))
+```
+
+* **Level of 0.99: **
+```{r}
+cat(paste0("Lower end point: ", t.test(high.educated$total.score,
+                                       low.educated$total.score,
+                                       conf.level = .99)$conf.int[1],
+           "\nUpper end point: ", t.test(high.educated$total.score,
+                                         low.educated$total.score,
+                                         conf.level = .99)$conf.int[2]))
+```
+
+---
+
+## Hypothesis Testing
+
+### Pre-processing
+
+I want to remove the rows what have *'I do not want to state'* for gender. Then, I will create a new dataframe. And then, I will regulate factor levels of gender. So,
+```{r}
+dataset.for.gender <- dataset[!(dataset$gender == "I do not want to state"),]
+
+dataset.for.gender$gender <- factor(dataset.for.gender$gender)
+```
+
+I want to remove the rows what have *'Divorced/Widowed'* for marital status. Then, I will create a new dataframe. And then, I will regulate factor levels of marital status. So,
+```{r}
+dataset.for.maritalstatus <- dataset[!(dataset$marital.status == "Divorced/Widowed"),]
+
+dataset.for.maritalstatus$marital.status <- factor(dataset.for.maritalstatus$marital.status)
+```
+
+I want to change level of education with **low** and **high**.
+
+* Low levels;
+  + Elementary School
+  + Secondary School
+  + High School
+  
+* High levels;
+  + Associate/Bachelor's Degree
+  + Master Degree or above
+
+So,
+```{r}
+dataset.for.education <- dataset
+
+dataset.for.education <- dataset.for.education %>%
+  mutate(education = recode(education,
+                            "Elementary School" = "Low Educated",
+                            "Secondary School" = "Low Educated",
+                            "High School" = "Low Educated",
+                            "Associate/Bachelor's Degree" = "High Educated",
+                            "Master Degree or above" = "High Educated"))
+```
+
+**Final Steps of Pre-processing**
+
+* Filter for Gender
+```{r}
+males <- filter(dataset.for.gender, gender == "Male")
+females <- filter(dataset.for.gender, gender == "Female")
+```
+
+* Filter for Marital Status
+```{r}
+single <- filter(dataset.for.maritalstatus, marital.status == "Single")
+married <- filter(dataset.for.maritalstatus, marital.status == "Married")
+```
+
+* Filter for Education
+  + **low.educated** and **high.educated** dataframes are created before.
+
+
+### First Hypothesis
+Are there significant difference between mean total.score of **male** and **female**?
+
+**STEPS**
+
+1. **Normality Check;**
+```{r}
+shapiro.test(males$total.score)
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+```{r}
+shapiro.test(females$total.score)
+
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+2. **Dependency Check;**
+
+I have two independent classes, so the sampling units(i.e. male and female participants) are totally different. So, I will conduct an independent t-test.
+
+3. **Variance Homogenity**
+
+Ho: sigmaMALE = sigmaFEMALE
+
+Ha: sigmaMALE != sigmaFEMALE
+```{r}
+var.test(males$total.score, females$total.score)
+```
+**Homogenity: ** p-value is greater than 0.05 and so null hypothesis for variance homogenity does not reject. In other words, *variances are homogenious.*
+
+4. **Test the Hypothesis**
+
+Ho: muMALE = muFEMALE
+
+Ha: muMALE != muFEMALE
+```{r}
+t.test(males$total.score, females$total.score,
+       paired = FALSE,
+       conf.level = .95,
+       alternative = "two.sided",
+       var.equal = TRUE)
+```
+**Rejection: ** p-value is greater than 0.05 and the null hypothesis rejection is failed.
+
+**Result: ** The difference between mean total.score of *male* and *female* is not highly significant. In other words, there is not a major difference between them. Even, mean score of male is almost equal to female.
+
+
+### Second Hypothesis
+Are there significant difference between mean total.score of **single** and **married**?
+
+**STEPS**
+
+1. **Normality Check;**
+```{r}
+shapiro.test(single$total.score)
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+```{r}
+shapiro.test(married$total.score)
+
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+2. **Dependency Check;**
+
+I have two independent classes, so the sampling units(i.e. single and married participants) are totally different. So, I will conduct an independent t-test.
+
+3. **Variance Homogenity**
+
+Ho: sigmaSINGLE = sigmaMARRIED
+
+Ha: sigmaSINGLE != sigmaMARRIED
+```{r}
+var.test(single$total.score, married$total.score)
+```
+**Homogenity: ** p-value is greater than 0.05 and so null hypothesis for variance homogenity does not reject. In other words, *variances are homogenious.*
+
+4. **Test the Hypothesis**
+
+Ho: muSINGLE = muMARRIED
+
+Ha: muSINGLE != muMARRIED
+```{r}
+t.test(single$total.score, married$total.score,
+       paired = FALSE,
+       conf.level = .95,
+       alternative = "two.sided",
+       var.equal = TRUE)
+```
+**Rejection: ** p-value is greater than 0.05 and the null hypothesis rejection is failed.
+
+**Result: ** The difference between mean total.score of *single* and *married* is not highly significant. In other words, there is not a major difference between them. Even, mean score of single is almost equal to married.
+
+
+### Third Hypothesis
+Are there significant difference between mean total.score of **low educated** and **high educated**?
+
+**STEPS**
+
+1. **Normality Check;**
+```{r}
+shapiro.test(low.educated$total.score)
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+```{r}
+shapiro.test(high.educated$total.score)
+
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+2. **Dependency Check;**
+
+I have two independent classes, so the sampling units(i.e. male and female participants) are totally different. So, I will conduct an independent t-test.
+
+3. **Variance Homogenity**
+
+Ho: sigmaLOWEDUCATED = sigmaHIGHEDUCATED
+
+Ha: sigmaLOWEDUCATED != sigmaHIGHEDUCATED
+```{r}
+var.test(low.educated$total.score, high.educated$total.score)
+```
+**Homogenity: ** p-value is greater than 0.05 and so null hypothesis for variance homogenity does not reject. In other words, *variances are homogenious.*
+
+4. **Test the Hypothesis**
+
+Ho: muMALE = muFEMALE
+
+Ha: muMALE != muFEMALE
+```{r}
+t.test(low.educated$total.score, high.educated$total.score,
+       paired = FALSE,
+       conf.level = .95,
+       alternative = "two.sided",
+       var.equal = TRUE)
+```
+**Rejection: ** p-value is less than 0.05 and the null hypothesis rejection is not failed.
+
+**Result: ** The difference between mean total.score of *male* and *female* is highly significant. In other words, there is a major difference between them.
+
+---
+
+## ANOVA or Regression
+
+To analyse hypothesis rejection, I've used t-test function for two levels. Now, I will analyse for three or more levels and I cannot use t-test again. So, I will use ANOVA.
+
+### Are there significant differences between mean of total.score of different education levels?
+
+**STEPS**
+
+1. **Visualization**
+
+First of all, I want to show total.score informations based on levels of *education*.
+```{r}
+boxplot(data = dataset, total.score ~ education)
+```
+
+As you can see easily, there are different education levels and their score results are different, too.
+
+2. **Normality Check;**
+
+At now, I will check the normality for every levels of education.
+```{r}
+shapiro.test(filter(dataset, education == "Elementary School")$total.score)
+```
+**Normality: ** p-value is greater than 0.05 and so it is normal.
+
+```{r}
+shapiro.test(filter(dataset, education == "Secondary School")$total.score)
+```
+**Normality: ** p-value is greater than 0.05 and so it is normal.
+
+```{r}
+shapiro.test(filter(dataset, education == "High School")$total.score)
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+```{r}
+shapiro.test(filter(dataset, education == "Associate/Bachelor's Degree")$total.score)
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+```{r}
+shapiro.test(filter(dataset, education == "Master Degree or above")$total.score)
+```
+**Normality: ** p-value is less than 0.05 and so it is not normal, but I will assume that it is normal.
+
+3. **Variance Homogenity**
+
+Afterwards, I will check the variance homogenity and I will create a null hypothesis which is assumed equality of variance of every education levels.
+
+Ho: varELEMENTARY = varSECONDARY = varHIGH = varASSOCIATE/BACHELOR = varMASTER
+
+Ha: At least one of them is different
+```{r}
+bartlett.test(data = dataset, total.score ~ education)
+```
+**Homogenity: ** p-value is greater than 0.05 and so null hypothesis for variance homogenity does not reject. In other words, *variances are homogenious.*
+
+4. **Analysis of Variance**
+
+After homogenity checking process, I will analyse the variances.
+```{r}
+model.education <- aov(data = dataset, total.score ~ education)
+model.education$coefficients
+```
+
+Intercept is mean total.score of participants who are stated their education level is *Elementary School* and its value is **80**. Then, the mean total.score of other levels;
+
+Education Level             | Mean total.score
+---------------             | ----------------
+Secondary School            | 80 - 4.545455 = 75.45454
+High School                 | 80 - 4.25 = 75.75
+Associate/Bachelor's Degree | 80 + 1.928571 = 81.92857
+Master Degree or above      | 80 - 12.5 = 67.5
+
+
+Now, I will show a summary of model for education levels. Also, create a null hypothesis and alternative hypothesis:
+
+Ho: muELEMENTARY = muSECONDARY = muHIGH = muASSOCIATE/BACHELOR = muMASTER
+
+Ha: At least one of them is different
+```{r}
+summary(model.education)
+```
+
+From output results, I will use F-value and p-value.
+
+* F-value
+  + It means effect of education levels is 3.096 times important.
+  + I will find the expected value using qf() function and analyse them for null hypothesis rejection.
+
+* p-value
+  + It is for rejection of null hypothesis.
+  + Null hypothesis rejects if p-value is less than 0.05.
+  + On the other hand, null hypothesis will be failed to reject.
+  
+  In this output result, p-value is 0.0171 and it is less than 0.05. So, the null hypothesis rejects. In other words, at least one level's mean total.score is different from others.
+
+Now, I utilize qf() function and it gives expected value of F-value.
+```{r}
+qf(1-0.05, 4, 195)
+```
+
+The expected F-value is approximate 2.418 and it is less than F-value of education which is 3.086. So, null hypothesis should be rejected. I knew from p-value processes, null hypothesis is rejected and this result proves it.
+
+
+5. **Find different one(s) out**
+```{r}
+TukeyHSD(model.education)
+```
+

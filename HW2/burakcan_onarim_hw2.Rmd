@@ -1,0 +1,133 @@
+---
+title: "2nd Homework of Statistical Computing"
+author: "Burak Can Onarım"
+date: "05 04 2020"
+output: html_document
+---
+
+## Read the csv file of Students Dataset from URL
+
+Students dataset uploaded to one website and I declared a variable what is called 'students' using read.csv() function.
+```{r}
+students <- read.csv("https://userpage.fu-berlin.de/soga/200/2010_data_sets/students.csv")
+```
+
+## Data Organization
+
+First of all, I used a function to see column names.
+```{r}
+attach(students)
+colnames(students)
+```
+
+Afterward, some column names are changed.
+```{r}
+names(students)[names(students) == "stud.id"] <- "id"
+names(students)[names(students) == "nc.score"] <- "gpa"
+names(students)[names(students) == "major"] <- "department.major"
+names(students)[names(students) == "minor"] <- "department.minor"
+names(students)[names(students) == "score1"] <- "midterm"
+names(students)[names(students) == "score2"] <- "final"
+```
+
+Some factors are changed using the 'plyr' package.
+```{r}
+library(plyr)
+students <- transform(students,
+                      online.tutorial = as.factor(mapvalues(online.tutorial,c(0,1), c("no", "yes"))),
+                      graduated = as.factor(mapvalues(graduated, c(0,1),
+                                                      c("no", "yes"))))
+```
+
+Also, I used 'dplyr' package to change names of columns.
+```{r students}
+library(dplyr)
+students <- students %>% mutate(
+  semester = recode(semester, ">6th" = ">6", "1st" = "1", "2nd" = "2",
+                    "3rd" = "3", "4th" = "4", "5th" = "5", "6th" = "6"))
+```
+
+Detach and attach functions are run to use new column names.
+```{r}
+detach(students)
+attach(students)
+```
+
+
+## Some calculations
+I calculate the BMI value and weighted mean of each students.
+```{r}
+bmi.value <- (weight / (height)^2)*100
+total.point <- midterm*0.4 + final*.6
+```
+
+## Data Visualization
+
+```{r}
+library(ggplot2)
+```
+# BMI Value ~ Salary
+```{r}
+ggplot(students, aes(salary, bmi.value)) +
+  geom_point() + geom_smooth(method="lm", se=F) +
+    labs(title="Scatterplot of BMI values and Salary",
+       subtitle="What can we say about correlation between BMI and salary?",
+       x="Salary",
+       y="BMI Value",
+       caption="Source: students dataset")
+```
+According to normal line of this scatterplot, average of salary increases as bmi value decrases.
+
+Certainly, there are some exclusions but I think people who have earn more money can stay healthy and they have optimal bmi value.
+
+
+# Grades ~ Salary
+```{r}
+ggplot(students, aes(salary, total.point)) +
+  geom_point() + geom_smooth(method="lm", se=F) +
+  labs(title="Scatterplot of Grades and Salary",
+       subtitle="What can we say about correlation between Grades and salary?",
+       x="Salary",
+       y="Grades",
+       caption="Source: students dataset")
+```
+Obviously, Students earn much more money if they get their grades up.
+
+
+# GPA ~ Salary by Gender
+```{r}
+ggplot(students, aes(salary, gpa)) +
+  labs(title="Plot of GPA and Salary by Interpret with Genders",
+       subtitle="What can we say about this plot?",
+       x = "Salary",
+       y = "GPA",
+       caption="Source: students dataset") +
+  geom_smooth(aes(col = gender), method="lm", se=F)
+```
+According to this plot, you cannot earn a lot of money if you are a woman. That is to say, men may be high-paid employees but women do not.
+
+My other opinion is about grades. The salary will be more when your gpa increase
+if you are a man. However, if you are a woman, your salary will be less when your gpa even increase.
+
+My final inference is about gpa of genders. Men's gpa is higher than women's.
+
+
+# Salary ~ Departments
+```{r}
+library(ggthemes)
+options(scipen = 999)
+ggplot(students, aes(x = salary, y = department.major)) +
+  geom_bar(stat = "identity", width = .6, color = "#85BB65") +
+  coord_flip() +
+  labs(title="Total Income of Students group by Same Departments",
+       x = "Total Income",
+       y = "Departments",
+       caption = "Source: students dataset") +
+  theme_tufte() +
+  theme(plot.title = element_text(hjust = .5), 
+        axis.ticks = element_blank(),
+        axis.text.x = element_text(angle=40, hjust=.8))
+```
+Department of Biology has the highest income and there may be many reasons for this situation. One of them is population of biology department. The population can be more than others. Also, students of biology department are more successful in their career and it is can be another reason.
+
+Department of Social Sciences has the lowest income and there may be many reasons as before. One of these reasons is population of social sciences department, again. The population can be less than others. Also, students of biology department are not successful or there is an underemployment.
